@@ -3,125 +3,133 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sign up for extracurricular activities at Mergington High School" />
     <title>Mergington High School Activities</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <header role="banner">
       <h1>Mergington High School</h1>
-      <h2>Extracurricular Activities</h2>
+      <p class="header-subtitle">Extracurricular Activities</p>
       <div id="user-controls">
         <div id="user-status">
-          <button id="login-button" class="icon-button">
-            <span class="user-icon">👤</span>
+          <button id="login-button" class="icon-button" aria-label="Login to your account">
+            <span class="user-icon" aria-hidden="true">👤</span>
             <span>Login</span>
           </button>
           <div id="user-info" class="hidden">
             <span id="display-name"></span>
-            <button id="logout-button">Logout</button>
+            <button id="logout-button" aria-label="Logout from your account">Logout</button>
           </div>
         </div>
       </div>
     </header>
 
-    <main>
-      <section id="activities-container">
+    <main id="main-content" role="main">
+      <section id="activities-container" aria-labelledby="activities-heading">
+        <h2 id="activities-heading" class="visually-hidden">Available Activities</h2>
         <div class="main-content-layout">
           <!-- Left Sidebar for Filters -->
-          <aside class="sidebar-filters">
-            <h3>Filter Activities</h3>
+          <aside class="sidebar-filters" role="search" aria-label="Filter activities">
+            <h3 id="filter-heading">Filter Activities</h3>
             <!-- Search Box -->
-            <div class="search-box">
+            <div class="search-box" role="search">
+              <label for="activity-search" class="visually-hidden">Search activities</label>
               <input
                 type="text"
                 id="activity-search"
                 placeholder="Search activities..."
+                aria-describedby="search-hint"
               />
-              <button id="search-button" aria-label="Search">
-                <span class="search-icon">🔍</span>
+              <button id="search-button" type="button" aria-label="Search activities">
+                <span class="search-icon" aria-hidden="true">🔍</span>
               </button>
+              <span id="search-hint" class="visually-hidden">Type to search for activities by name or description</span>
             </div>
 
-            <div class="filter-container">
-              <div class="filter-label">Filter by category:</div>
-              <div class="category-filters" id="category-filters">
-                <button class="category-filter active" data-category="all">
+            <fieldset class="filter-container">
+              <legend class="filter-label">Filter by category:</legend>
+              <div class="category-filters" id="category-filters" role="group">
+                <button class="category-filter active" data-category="all" aria-pressed="true">
                   All
                 </button>
-                <button class="category-filter" data-category="sports">
+                <button class="category-filter" data-category="sports" aria-pressed="false">
                   Sports
                 </button>
-                <button class="category-filter" data-category="arts">
+                <button class="category-filter" data-category="arts" aria-pressed="false">
                   Arts
                 </button>
-                <button class="category-filter" data-category="academic">
+                <button class="category-filter" data-category="academic" aria-pressed="false">
                   Academic
                 </button>
-                <button class="category-filter" data-category="community">
+                <button class="category-filter" data-category="community" aria-pressed="false">
                   Community
                 </button>
-                <button class="category-filter" data-category="technology">
+                <button class="category-filter" data-category="technology" aria-pressed="false">
                   Technology
                 </button>
               </div>
-            </div>
+            </fieldset>
 
             <!-- Day Filter -->
-            <div class="filter-container day-filter-container">
-              <div class="filter-label">Filter by day:</div>
-              <div class="day-filters" id="day-filters">
-                <button class="day-filter active" data-day="">All Days</button>
-                <button class="day-filter" data-day="Monday">Monday</button>
-                <button class="day-filter" data-day="Tuesday">Tuesday</button>
-                <button class="day-filter" data-day="Wednesday">
+            <fieldset class="filter-container day-filter-container">
+              <legend class="filter-label">Filter by day:</legend>
+              <div class="day-filters" id="day-filters" role="group">
+                <button class="day-filter active" data-day="" aria-pressed="true">All Days</button>
+                <button class="day-filter" data-day="Monday" aria-pressed="false">Monday</button>
+                <button class="day-filter" data-day="Tuesday" aria-pressed="false">Tuesday</button>
+                <button class="day-filter" data-day="Wednesday" aria-pressed="false">
                   Wednesday
                 </button>
-                <button class="day-filter" data-day="Thursday">Thursday</button>
-                <button class="day-filter" data-day="Friday">Friday</button>
-                <button class="day-filter" data-day="Saturday">Saturday</button>
-                <button class="day-filter" data-day="Sunday">Sunday</button>
+                <button class="day-filter" data-day="Thursday" aria-pressed="false">Thursday</button>
+                <button class="day-filter" data-day="Friday" aria-pressed="false">Friday</button>
+                <button class="day-filter" data-day="Saturday" aria-pressed="false">Saturday</button>
+                <button class="day-filter" data-day="Sunday" aria-pressed="false">Sunday</button>
               </div>
-            </div>
+            </fieldset>
 
             <!-- Time Filter -->
-            <div class="filter-container time-filter-container">
-              <div class="filter-label">Filter by time:</div>
-              <div class="time-filters">
-                <button class="time-filter active" data-time="">
+            <fieldset class="filter-container time-filter-container">
+              <legend class="filter-label">Filter by time:</legend>
+              <div class="time-filters" role="group">
+                <button class="time-filter active" data-time="" aria-pressed="true">
                   All Times
                 </button>
-                <button class="time-filter" data-time="morning">
+                <button class="time-filter" data-time="morning" aria-pressed="false">
                   Before School
                 </button>
-                <button class="time-filter" data-time="afternoon">
+                <button class="time-filter" data-time="afternoon" aria-pressed="false">
                   After School
                 </button>
-                <button class="time-filter" data-time="weekend">Weekend</button>
+                <button class="time-filter" data-time="weekend" aria-pressed="false">Weekend</button>
               </div>
-            </div>
+            </fieldset>
           </aside>
 
           <!-- Activities Content -->
           <div class="activities-content">
-            <div id="activities-list">
+            <div id="activities-list" role="list" aria-live="polite" aria-busy="true">
               <!-- Activities will be loaded here -->
               <p>Loading activities...</p>
             </div>
-            <div id="message" class="hidden message"></div>
+            <div id="message" class="hidden message" role="status" aria-live="polite"></div>
           </div>
         </div>
       </section>
     </main>
 
-    <footer>
+    <footer role="contentinfo">
       <p>&copy; 2023 Mergington High School</p>
     </footer>
 
     <!-- Registration Modal -->
-    <div id="registration-modal" class="modal hidden">
+    <div id="registration-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="registration-modal-title">
       <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h3>Register for <span id="modal-activity-name"></span></h3>
+        <button class="close-modal" aria-label="Close registration form">&times;</button>
+        <h3 id="registration-modal-title">Register for <span id="modal-activity-name"></span></h3>
         <form id="signup-form">
           <div class="form-group">
             <label for="email">Student Email:</label>
@@ -130,7 +138,10 @@
               id="email"
               required
               placeholder="your-email@mergington.edu"
+              aria-describedby="email-hint"
+              autocomplete="email"
             />
+            <span id="email-hint" class="visually-hidden">Enter the student's school email address</span>
           </div>
           <input type="hidden" id="activity" value="" />
           <button type="submit">Register</button>
@@ -139,10 +150,10 @@
     </div>
 
     <!-- Login Modal -->
-    <div id="login-modal" class="modal hidden">
+    <div id="login-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <div class="modal-content">
-        <span class="close-login-modal">&times;</span>
-        <h3>Teacher Login</h3>
+        <button class="close-login-modal" aria-label="Close login form">&times;</button>
+        <h3 id="login-modal-title">Teacher Login</h3>
         <form id="login-form">
           <div class="form-group">
             <label for="username">Username:</label>
@@ -151,6 +162,7 @@
               id="username"
               required
               placeholder="Enter your username"
+              autocomplete="username"
             />
           </div>
           <div class="form-group">
@@ -160,11 +172,12 @@
               id="password"
               required
               placeholder="Enter your password"
+              autocomplete="current-password"
             />
           </div>
           <button type="submit">Login</button>
         </form>
-        <div id="login-message" class="hidden message"></div>
+        <div id="login-message" class="hidden message" role="alert"></div>
       </div>
     </div>
 
