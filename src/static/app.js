@@ -367,6 +367,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchActivities() {
     // Show loading skeletons first
     showLoadingSkeletons();
+    
+    // Set aria-busy to indicate loading state
+    activitiesList.setAttribute("aria-busy", "true");
 
     try {
       // Build query string with filters if they exist
@@ -404,8 +407,11 @@ document.addEventListener("DOMContentLoaded", () => {
       displayFilteredActivities();
     } catch (error) {
       activitiesList.innerHTML =
-        "<p>Failed to load activities. Please try again later.</p>";
+        '<p role="alert">Failed to load activities. Please try again later.</p>';
       console.error("Error fetching activities:", error);
+    } finally {
+      // Set aria-busy to false when loading is complete
+      activitiesList.setAttribute("aria-busy", "false");
     }
   }
 
@@ -476,6 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
     activityCard.className = "activity-card";
+    activityCard.setAttribute("role", "listitem");
 
     // Calculate spots and capacity
     const totalSpots = details.max_participants;
@@ -484,12 +491,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const capacityPercentage = (takenSpots / totalSpots) * 100;
     const isFull = spotsLeft <= 0;
 
-    // Determine capacity status class
+    // Determine capacity status class and text
     let capacityStatusClass = "capacity-available";
+    let capacityStatusText = "Spots available";
     if (isFull) {
       capacityStatusClass = "capacity-full";
+      capacityStatusText = "Activity is full";
     } else if (capacityPercentage >= 75) {
       capacityStatusClass = "capacity-near-full";
+      capacityStatusText = "Almost full";
     }
 
     // Determine activity type
@@ -499,16 +509,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
 
-    // Create activity tag
+    // Create activity tag with aria-label
     const tagHtml = `
-      <span class="activity-tag" style="background-color: ${typeInfo.color}; color: ${typeInfo.textColor}">
+      <span class="activity-tag" style="background-color: ${typeInfo.color}; color: ${typeInfo.textColor}" aria-label="Category: ${typeInfo.label}">
         ${typeInfo.label}
       </span>
     `;
 
-    // Create capacity indicator
+    // Create capacity indicator with accessibility
     const capacityIndicator = `
-      <div class="capacity-container ${capacityStatusClass}">
+      <div class="capacity-container ${capacityStatusClass}" role="meter" aria-valuenow="${takenSpots}" aria-valuemin="0" aria-valuemax="${totalSpots}" aria-label="${capacityStatusText}: ${takenSpots} of ${totalSpots} spots taken">
         <div class="capacity-bar-bg">
           <div class="capacity-bar-fill" style="width: ${capacityPercentage}%"></div>
         </div>
@@ -519,30 +529,35 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    // Create share buttons
+    const shareButtons = createShareButtons(name, details.description, formattedSchedule);
+
+    // Create unique ID for the activity card heading
+    const activityId = name.replace(/\s+/g, '-').toLowerCase();
+
     activityCard.innerHTML = `
       ${tagHtml}
-      <h4>${name}</h4>
+      <h4 id="activity-${activityId}">${name}</h4>
       <p>${details.description}</p>
-      <p class="tooltip">
+      <p>
         <strong>Schedule:</strong> ${formattedSchedule}
-        <span class="tooltip-text">Regular meetings at this time throughout the semester</span>
+        <span class="visually-hidden">Regular meetings at this time throughout the semester</span>
       </p>
       ${capacityIndicator}
       <div class="participants-list">
-        <h5>Current Participants:</h5>
-        <ul>
+        <h5 id="participants-${activityId}">Current Participants:</h5>
+        <ul aria-labelledby="participants-${activityId}">
           ${details.participants
             .map(
               (email) => `
             <li>
-              ${email}
+              <span class="participant-email">${email}</span>
               ${
                 currentUser
                   ? `
-                <span class="delete-participant tooltip" data-activity="${name}" data-email="${email}">
-                  ✖
-                  <span class="tooltip-text">Unregister this student</span>
-                </span>
+                <button class="delete-participant" data-activity="${name}" data-email="${email}" aria-label="Unregister ${email} from ${name}" title="Unregister this student">
+                  <span aria-hidden="true">✖</span>
+                </button>
               `
                   : ""
               }
@@ -552,18 +567,19 @@ document.addEventListener("DOMContentLoaded", () => {
             .join("")}
         </ul>
       </div>
+      ${shareButtons}
       <div class="activity-card-actions">
         ${
           currentUser
             ? `
           <button class="register-button" data-activity="${name}" ${
-                isFull ? "disabled" : ""
-              }>
+                isFull ? 'disabled aria-disabled="true"' : ""
+              } aria-label="${isFull ? 'Activity is full' : `Register a student for ${name}`}">
             ${isFull ? "Activity Full" : "Register Student"}
           </button>
         `
             : `
-          <div class="auth-notice">
+          <div class="auth-notice" role="note">
             Teachers can register students.
           </div>
         `
@@ -587,8 +603,103 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Add click handlers for share buttons
+    const shareButtonElements = activityCard.querySelectorAll(".share-button");
+    shareButtonElements.forEach((button) => {
+      button.addEventListener("click", handleShareClick);
+    });
+
     activitiesList.appendChild(activityCard);
   }
+
+  // Create social sharing buttons HTML
+  function createShareButtons(activityName, description, schedule) {
+    const shareText = `Check out ${activityName} at Mergington High School! ${description}`;
+    const pageUrl = window.location.href;
+    
+    return `
+      <div class="share-container">
+        <span class="share-label" id="share-label-${activityName.replace(/\s+/g, '-').toLowerCase()}">Share this activity:</span>
+        <div class="share-buttons" role="group" aria-labelledby="share-label-${activityName.replace(/\s+/g, '-').toLowerCase()}">
+          <button class="share-button share-button--facebook" 
+                  data-platform="facebook" 
+                  data-activity="${activityName}"
+                  data-description="${description}"
+                  aria-label="Share ${activityName} on Facebook"
+                  title="Share on Facebook">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          </button>
+          <button class="share-button share-button--twitter" 
+                  data-platform="twitter" 
+                  data-activity="${activityName}"
+                  data-description="${description}"
+                  aria-label="Share ${activityName} on X (Twitter)"
+                  title="Share on X (Twitter)">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </button>
+          <button class="share-button share-button--linkedin" 
+                  data-platform="linkedin" 
+                  data-activity="${activityName}"
+                  data-description="${description}"
+                  aria-label="Share ${activityName} on LinkedIn"
+                  title="Share on LinkedIn">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </button>
+          <button class="share-button share-button--email" 
+                  data-platform="email" 
+                  data-activity="${activityName}"
+                  data-description="${description}"
+                  aria-label="Share ${activityName} via Email"
+                  title="Share via Email">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z"/>
+              <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Handle share button click
+  function handleShareClick(event) {
+    const button = event.currentTarget;
+    const platform = button.dataset.platform;
+    const activityName = button.dataset.activity;
+    const description = button.dataset.description;
+    const pageUrl = window.location.href;
+    const shareText = `Check out ${activityName} at Mergington High School! ${description}`;
+
+    let shareUrl;
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}&quote=${encodeURIComponent(shareText)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
+        break;
+      case 'email':
+        shareUrl = `mailto:?subject=${encodeURIComponent(`Check out ${activityName} at Mergington High School`)}&body=${encodeURIComponent(`${shareText}\n\n${pageUrl}`)}`;
+        window.location.href = shareUrl;
+        return;
+    }
+
+    // Open share dialog in a new window
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400,noopener,noreferrer');
+    }
+  }
+
 
   // Event listeners for search and filter
   searchInput.addEventListener("input", (event) => {
@@ -605,9 +716,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listeners to category filter buttons
   categoryFilters.forEach((button) => {
     button.addEventListener("click", () => {
-      // Update active class
-      categoryFilters.forEach((btn) => btn.classList.remove("active"));
+      // Update active class and aria-pressed
+      categoryFilters.forEach((btn) => {
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+      });
       button.classList.add("active");
+      button.setAttribute("aria-pressed", "true");
 
       // Update current filter and display filtered activities
       currentFilter = button.dataset.category;
@@ -618,9 +733,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listeners to day filter buttons
   dayFilters.forEach((button) => {
     button.addEventListener("click", () => {
-      // Update active class
-      dayFilters.forEach((btn) => btn.classList.remove("active"));
+      // Update active class and aria-pressed
+      dayFilters.forEach((btn) => {
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+      });
       button.classList.add("active");
+      button.setAttribute("aria-pressed", "true");
 
       // Update current day filter and fetch activities
       currentDay = button.dataset.day;
@@ -631,9 +750,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listeners for time filter buttons
   timeFilters.forEach((button) => {
     button.addEventListener("click", () => {
-      // Update active class
-      timeFilters.forEach((btn) => btn.classList.remove("active"));
+      // Update active class and aria-pressed
+      timeFilters.forEach((btn) => {
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+      });
       button.classList.add("active");
+      button.setAttribute("aria-pressed", "true");
 
       // Update current time filter and fetch activities
       currentTimeRange = button.dataset.time;
@@ -641,24 +764,65 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Track previously focused element for modal accessibility
+  let previouslyFocusedElement = null;
+
   // Open registration modal
   function openRegistrationModal(activityName) {
+    // Store the currently focused element to return focus when modal closes
+    previouslyFocusedElement = document.activeElement;
+    
     modalActivityName.textContent = activityName;
     activityInput.value = activityName;
     registrationModal.classList.remove("hidden");
     // Add slight delay to trigger animation
     setTimeout(() => {
       registrationModal.classList.add("show");
+      // Focus the first input in the modal
+      const emailInput = registrationModal.querySelector("#email");
+      if (emailInput) {
+        emailInput.focus();
+      }
     }, 10);
+    
+    // Trap focus within modal
+    document.addEventListener("keydown", trapFocusInModal);
   }
 
   // Close registration modal
   function closeRegistrationModalHandler() {
     registrationModal.classList.remove("show");
+    document.removeEventListener("keydown", trapFocusInModal);
     setTimeout(() => {
       registrationModal.classList.add("hidden");
       signupForm.reset();
+      // Return focus to the previously focused element
+      if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+      }
     }, 300);
+  }
+  
+  // Trap focus within modal for keyboard navigation
+  function trapFocusInModal(event) {
+    if (event.key !== "Tab") return;
+    
+    const modal = document.querySelector(".modal.show .modal-content");
+    if (!modal) return;
+    
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+    } else if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
   }
 
   // Event listener for close button
@@ -666,6 +830,18 @@ document.addEventListener("DOMContentLoaded", () => {
     "click",
     closeRegistrationModalHandler
   );
+  
+  // Close modal on Escape key
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (!registrationModal.classList.contains("hidden")) {
+        closeRegistrationModalHandler();
+      }
+      if (!loginModal.classList.contains("hidden")) {
+        closeLoginModalHandler();
+      }
+    }
+  });
 
   // Close modal when clicking outside of it
   window.addEventListener("click", (event) => {
