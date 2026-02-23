@@ -32,6 +32,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return div.innerHTML;
   }
 
+  // Utility function to generate unique, safe IDs from text
+  function generateSafeId(text, index) {
+    const sanitized = text.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    return sanitized || `item-${index}`;
+  }
+
+  // Selector for focusable elements (used for focus trap in modals)
+  const FOCUSABLE_ELEMENTS_SELECTOR = 
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), ' +
+    'textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), ' +
+    '[role="button"]:not([aria-disabled="true"]), [contenteditable="true"], summary, details';
+
   // Activity categories with corresponding colors
   const activityTypes = {
     sports: { label: "Sports", color: "#e8f5e9", textColor: "#2e7d32" },
@@ -480,13 +492,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Display filtered activities
-    Object.entries(filteredActivities).forEach(([name, details]) => {
-      renderActivityCard(name, details);
+    Object.entries(filteredActivities).forEach(([name, details], index) => {
+      renderActivityCard(name, details, index);
     });
   }
 
   // Function to render a single activity card
-  function renderActivityCard(name, details) {
+  function renderActivityCard(name, details, index = 0) {
     const activityCard = document.createElement("div");
     activityCard.className = "activity-card";
     activityCard.setAttribute("role", "listitem");
@@ -541,10 +553,10 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     // Create share buttons
-    const shareButtons = createShareButtons(name, details.description, formattedSchedule);
+    const shareButtons = createShareButtons(name, details.description, formattedSchedule, index);
 
-    // Create unique ID for the activity card heading - use safe characters only
-    const activityId = name.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    // Create unique ID for the activity card heading using utility function
+    const activityId = generateSafeId(name, index);
 
     activityCard.innerHTML = `
       ${tagHtml}
@@ -627,10 +639,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Create social sharing buttons HTML
-  function createShareButtons(activityName, description, schedule) {
+  function createShareButtons(activityName, description, schedule, index = 0) {
     const escapedName = escapeHtml(activityName);
     const escapedDescription = escapeHtml(description);
-    const safeId = activityName.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const safeId = generateSafeId(activityName, index);
     
     return `
       <div class="share-container">
@@ -825,10 +837,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.querySelector(".modal.show .modal-content");
     if (!modal) return;
     
-    // Comprehensive selector for all focusable elements
-    const focusableElements = modal.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [role="button"]:not([aria-disabled="true"]), [contenteditable="true"], summary, details'
-    );
+    // Use the constant selector for all focusable elements
+    const focusableElements = modal.querySelectorAll(FOCUSABLE_ELEMENTS_SELECTOR);
     
     if (focusableElements.length === 0) return;
     
